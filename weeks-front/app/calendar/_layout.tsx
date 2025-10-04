@@ -3,9 +3,9 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import PillTabs from '@/components/pill-tabs';
-import DayViewer from './day-viewer';
-import WeekViewer from './week-viewer';
-import MonthViewer from './month-viewer';
+import DayViewer from './day/week-viewer';
+import WeekViewer from './week/week-viewer';
+import MonthViewer from './month/month-viewer';
 
 const tabs = [
   { key: 'day-viewer', label: 'Day' },
