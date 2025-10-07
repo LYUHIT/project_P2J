@@ -10,7 +10,7 @@ const toMin = (t: string) => {
   return h * 60 + m;
 };
 
-export default function DayRow({ items }: { items: Array<{id:string; title:string; start:string; end:string}> }) {
+export default function ScheduleItem({ items }: { items: Array<{id:string; title:string; start:string; end:string}> }) {
   return (
     <View style={{ height: ROW_HEIGHT, width: HOUR_WIDTH*24, position: "relative" }}>
       {/* 바닥: 시간 격자 */}
@@ -45,4 +45,3 @@ export default function DayRow({ items }: { items: Array<{id:string; title:strin
   );
 }
 
-export { DayRow };
