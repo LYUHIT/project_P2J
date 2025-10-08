@@ -1,24 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
+import appDB from '@/db/database';
 import WeekPager from './components/week-pager';
-import { Schedule } from './components/week-pager';
+import { Schedule } from '@/types/schedule';
 
 export default function WeekViewer() {
+
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      try {
+        console.log('Loading schedules...');
+        const userSchedules : Schedule[] = await appDB.sp_GetSchedules();
+        console.log('Loaded schedules:', userSchedules);
+        setSchedules(userSchedules);
+      } catch (error) {
+        console.error('Failed to load schedules:', error);
+      }
+    };
+    loadSchedules();
+  }, []);
+
+  useEffect(() => {
+    console.log(schedules);
+  }, [schedules]);
+
+  const today = new Date();
+  
   return (
     <View style={{ flex: 1 }}>
         <WeekPager 
-            anchorDate={new Date()}
-            schedules={testItems}
+            anchorDate={today}
+            schedules={schedules}
         />
     </View>
   );
 }
-
-
-const testItems : Schedule[] = [
-  { id: '1', title: 'Meeting', start: '09:00', end: '12:00', dayIndex: 0   },
-  { id: '2', title: 'Presentation', start: '13:30', end: '15:30', dayIndex: 0 },
-  { id: '3', title: 'Lunch', start: '12:00', end: '13:30', dayIndex: 1 },
-  { id: '4', title: 'Conference', start: '14:00', end: '16:00', dayIndex: 3 },
-  { id: '5', title: 'Dinner', start: '18:00', end: '21:00', dayIndex: 4 },
-];

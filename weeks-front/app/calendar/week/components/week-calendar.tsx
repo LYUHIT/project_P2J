@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { Schedule } from "./week-pager";
+import { Schedule } from "@/types/schedule";
 import WeekTimeBar from "./week-time-bar";
 
 const HOUR_WIDTH = 60;
@@ -26,8 +26,12 @@ export default function WeekCalendar({
 
   // 요일별로 묶기
   const byDay = useMemo(() => {
+    console.log('WeekCalendar - schedules:', schedules);
     const map: Record<number, Schedule[]> = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
-    schedules.forEach(s => map[s.dayIndex]?.push(s));
+    schedules.forEach(s => {
+      const day = s.StartTime.getDay();
+      map[day]?.push(s);
+    });
     return map;
   }, [schedules]);
 
@@ -95,11 +99,21 @@ export default function WeekCalendar({
                 {/* 오버레이: 일정칩 */}
                 <View style={[StyleSheet.absoluteFillObject, { pointerEvents: "box-none" }]}>
                   {(byDay[dayIndex] || []).map(ev => {
-                    const left = toMin(ev.start) * PPM;
-                    const width = Math.max((toMin(ev.end) - toMin(ev.start)) * PPM, 16);
+                    const startTime = ev.StartTime instanceof Date ? ev.StartTime : new Date(ev.StartTime);
+                    const endTime = ev.EndTime instanceof Date ? ev.EndTime : new Date(ev.EndTime);
+                    
+                    const startHour = startTime.getHours();
+                    const startMinute = startTime.getMinutes();
+                    const endHour = endTime.getHours();
+                    const endMinute = endTime.getMinutes();
+                    
+                    const left = (startHour * 60 + startMinute) * PPM;
+                    const width = Math.max(((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) * PPM, 16);
+                    
+                    console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
                     return (
                       <View
-                        key={ev.id}
+                        key={ev.UUID}
                         style={{
                           position: "absolute",
                           left, top: 8, width, height: rowHeight - 16,
@@ -108,7 +122,7 @@ export default function WeekCalendar({
                           justifyContent: "center"
                         }}
                       >
-                        <Text numberOfLines={1} style={{ fontWeight: "600" }}>{ev.title}</Text>
+                        <Text numberOfLines={1} style={{ fontWeight: "600" }}>{ev.Title}</Text>
                       </View>
                     );
                   })}

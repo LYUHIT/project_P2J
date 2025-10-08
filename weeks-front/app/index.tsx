@@ -1,3 +1,4 @@
+import appDB from '@/db/database';
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
@@ -23,6 +24,20 @@ export default function Index() {
     setIsLoggedIn(true);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    const initDB = async () => {
+      try {
+        await appDB.sp_CreateScheduleTable();
+        // 기존 데이터 삭제 후 새 데이터 삽입 (개발 중에만)
+        await appDB.sp_SeedDataInsert();
+        console.log('Database initialized successfully');
+      } catch (error) {
+        console.error('Database initialization failed:', error);
+      }
+    };
+    initDB();
+  }, []);
 
   // 로딩 화면
   if (isLoading) {

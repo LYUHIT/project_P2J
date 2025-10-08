@@ -1,6 +1,5 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { Schedule } from "./week-pager";
+import React from "react";
+import { View, Text } from "react-native";
 
 const HOUR_WIDTH = 60;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
