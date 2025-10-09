@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import appDB from '@/db/database';
 import WeekPager from './components/week-pager';
@@ -26,7 +26,7 @@ export default function WeekViewer() {
     console.log(schedules);
   }, [schedules]);
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []); // 한 번만 생성
   
   return (
     <View style={{ flex: 1 }}>

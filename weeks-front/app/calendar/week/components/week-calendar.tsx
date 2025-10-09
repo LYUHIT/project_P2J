@@ -26,7 +26,7 @@ export default function WeekCalendar({
 
   // 요일별로 묶기
   const byDay = useMemo(() => {
-    console.log('WeekCalendar - schedules:', schedules);
+    // console.log('WeekCalendar - schedules:', schedules);
     const map: Record<number, Schedule[]> = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
     schedules.forEach(s => {
       const day = s.StartTime.getDay();
@@ -110,7 +110,7 @@ export default function WeekCalendar({
                     const left = (startHour * 60 + startMinute) * PPM;
                     const width = Math.max(((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) * PPM, 16);
                     
-                    console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
+                    // console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
                     return (
                       <View
                         key={ev.UUID}
