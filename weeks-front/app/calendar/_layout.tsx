@@ -15,9 +15,11 @@ const tabs = [
 
 export default function CalendarLayout() {
   const [activeTab, setActiveTab] = useState('week-viewer');
+  const [beforeActiveTab, setBeforeActiveTab] = useState('week-viewer');
   const [isLayoutReady, setIsLayoutReady] = useState(false);
   const [pillTabsHeight, setPillTabsHeight] = useState(0);
 
+  
   // PillTabs의 레이아웃이 완료된 후에 콘텐츠 렌더링
   useEffect(() => {
     if (pillTabsHeight > 0) {
@@ -55,7 +57,9 @@ export default function CalendarLayout() {
           <PillTabs 
             tabs={tabs} 
             activeTab={activeTab} 
-            onTabPress={setActiveTab} 
+            onTabPress={(key) => {
+              setActiveTab(key);
+            }} 
           />
         </View>
         <View style={styles.content}>

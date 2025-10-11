@@ -1,15 +1,18 @@
 import React from "react";
 import { View, Text } from "react-native";
+import { heightStore } from "./store/heightStore";
+import { useSnapshot } from "valtio";
 
 const HOUR_WIDTH = 60;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function WeekTimeBar() {
+  const heightSnap = useSnapshot(heightStore);
   return (
-    <View style={{ height: 30, flexDirection: "row" }}>
+    <View style={{ height: heightSnap.timeHeaderHeight, flexDirection: "row", backgroundColor: "#555"}}>
       {HOURS.map(h => (
-        <View key={h} style={{ width: HOUR_WIDTH, alignItems: "flex-start" }}>
-          <Text style={{ fontWeight: "500" }}>{`${String(h).padStart(2,"0")}:00`}</Text>
+        <View key={h} style={{ width: HOUR_WIDTH, alignItems: "flex-start", justifyContent: "center" }}>
+          <Text style={{ fontWeight: "500", color: "white" }}>{`${String(h).padStart(2,"0")}:00`}</Text>
         </View>
       ))}
     </View>

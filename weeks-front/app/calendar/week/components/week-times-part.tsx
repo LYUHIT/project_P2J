@@ -1,28 +1,22 @@
-import React, { useMemo, useRef, useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { ScrollView, View, Text, StyleSheet } from "react-native";
+import { heightStore } from "./store/heightStore";
+import { useSnapshot } from "valtio";
 import { Schedule } from "@/types/schedule";
 import WeekTimeBar from "./week-time-bar";
+import ENUM from "@/enum/varEnum";
+import { useMemo, useState } from "react";
 
-const HOUR_WIDTH = 60;
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const DAYS = ["월","화","수","목","금","토","일"] as const;
-const PPM = HOUR_WIDTH / 60;
-
-const toMin = (t: string) => { const [h,m] = t.split(":").map(Number); return h*60+m; };
-
-export default function WeekCalendar({
-  weekStartDate,
-  schedules = [],
+export default function WeekTimesPart({
+  scrollRef,
+  schedules,
 }: {
-  weekStartDate: Date;
+  scrollRef: React.RefObject<ScrollView>;
   schedules: Schedule[];
 }) {
-  const scrollRef = useRef<ScrollView | null>(null);
-  const [containerHeight, setContainerHeight] = useState(0);
-  
-  // 동적으로 계산된 행 높이 (페이지 높이의 7등분)
-  const timeHeaderHeight = 30; // 시간 헤더 높이 (WeekTimeBar의 실제 높이)
-  const rowHeight = containerHeight > 0 ? (containerHeight - timeHeaderHeight) / 7 : 72;
+  const heightSnap = useSnapshot(heightStore);
+
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
+  const [newSchedulePosition, setNewSchedulePosition] = useState<{dayIndex: number, hour: number} | null>(null);
 
   // 요일별로 묶기
   const byDay = useMemo(() => {
@@ -35,52 +29,40 @@ export default function WeekCalendar({
     return map;
   }, [schedules]);
 
-  useEffect(() => {
-    // 초기 가로 위치(예: 09:00)
-    scrollRef.current?.scrollTo({ x: 9 * HOUR_WIDTH, animated: false });
-  }, [weekStartDate]);
+  // ================================================
+    // 시간대별 long press 핸들러
+    const handleTimeSlotLongPress = (dayIndex: number, hour: number) => {
+        setIsAddingSchedule(true);
+        setNewSchedulePosition({ dayIndex, hour });
+    };
+
+    // 일정 추가 취소
+    const handleScheduleCancel = () => {
+        setIsAddingSchedule(false);
+        setNewSchedulePosition(null);
+    };
+
+  // ================================================
 
   return (
-    <View 
-      style={{ flexDirection: "row", height: "100%" }}
-      onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
-    >
-      {/* 왼쪽 고정 열 (요일/날짜) */}
-      <View style={{ width: 96, borderRightWidth: 1, borderColor: "#eee" }}>
-        <View style={{ height: 32 }} />
-        {DAYS.map((d, i) => {
-          const dayDate = new Date(weekStartDate);
-          dayDate.setDate(weekStartDate.getDate() + i);
-          return (
-            <View key={i} style={{ height: rowHeight, justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontWeight: "700" }}>{d}</Text>
-              <Text style={{ color: "#64748b" }}>
-                {`${dayDate.getMonth()+1}/${dayDate.getDate()}`}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-
-      {/* 오른쪽: 시간 헤더 + 7행 그리드 (가로 스크롤만) */}
-      <ScrollView
+    <ScrollView // 횡 스크롤 (시간)
         ref={scrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         directionalLockEnabled
         contentContainerStyle={{}}
       >
-        <View style={{ width: HOUR_WIDTH * 24 }}>
+        <View style={{ width: ENUM.HOUR_WIDTH * 24}}>
           {/* 7행(세로 스크롤 없음) */}
           <WeekTimeBar/>
           <View>
-            {DAYS.map((_, dayIndex) => (
-              <View key={dayIndex} style={{ height: rowHeight, width: HOUR_WIDTH*24, position: "relative" }}>
+            {ENUM.DAYS.map((_, dayIndex) => (
+              <View key={dayIndex} style={{ height: heightSnap.weekRowHeight, width: ENUM.HOUR_WIDTH*24, position: "relative" }}>
                 {/* 바닥: 시간 격자 (세로선) */}
                 <View style={[StyleSheet.absoluteFillObject, { flexDirection: "row" }]}>
-                  {HOURS.map(h => (
+                  {ENUM.HOURS.map(h => (
                     <View key={h} style={{ 
-                      width: HOUR_WIDTH, 
+                      width: ENUM.HOUR_WIDTH, 
                       borderRightWidth: 1, 
                       borderColor: "#ddd"
                     }} />
@@ -90,7 +72,7 @@ export default function WeekCalendar({
                 <View style={[StyleSheet.absoluteFillObject, { flexDirection: "column" }]}>
                   {Array.from({ length: 6 }, (_, i) => (
                     <View key={i} style={{ 
-                      height: rowHeight,
+                      height: heightSnap.weekRowHeight,
                       borderBottomWidth: 2, 
                       borderColor: "#ddd"
                     }} />
@@ -107,16 +89,16 @@ export default function WeekCalendar({
                     const endHour = endTime.getHours();
                     const endMinute = endTime.getMinutes();
                     
-                    const left = (startHour * 60 + startMinute) * PPM;
-                    const width = Math.max(((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) * PPM, 16);
+                    const left = (startHour * 60 + startMinute) * ENUM.PPM;
+                    const width = Math.max(((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) * ENUM.PPM, 16);
                     
-                    // console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
+                    console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
                     return (
                       <View
                         key={ev.UUID}
                         style={{
                           position: "absolute",
-                          left, top: 8, width, height: rowHeight - 16,
+                          left, top: 8, width, height: heightSnap.weekRowHeight - 16,
                           borderRadius: 8, paddingHorizontal: 6,
                           backgroundColor: "#eaf2ff", borderWidth: 1, borderColor: "#c7d2fe",
                           justifyContent: "center"
@@ -132,6 +114,5 @@ export default function WeekCalendar({
           </View>
         </View>
       </ScrollView>
-    </View>
   );
 }

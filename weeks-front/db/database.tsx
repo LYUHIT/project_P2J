@@ -36,14 +36,14 @@ const appDB = {
         
         await db.runAsync(`
             INSERT INTO tbl_Schedules (uuid, circle_uid, user_uid, type, title, content, start_time, end_time, updated_time, status) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-            [Date.now(), 0, 1, 0, "테스트 할 일 입니다.", "테스트 할 일의 내용입니다.", `${today} 09:00:00`, `${today} 13:00:00`, now.toISOString(), 0]
+            [String(Date.now()), 0, 1, 0, "테스트 할 일 입니다.", "테스트 할 일의 내용입니다.", `${today} 09:00:00`, `${today} 13:00:00`, now.toISOString(), 0]
         );
     },
 
-    sp_CreateSchedule: async (title: string, startTs: number, endTs: number) => {
+    sp_CreateSchedule: async (circle_uid: number, user_uid: number, type: number, title: string, content: string, startTs: number, endTs: number) => {
         await db.runAsync(
-            "INSERT OR REPLACE INTO tbl_Schedules (uuid, circle_uid, user_uid, type, title, content, start_time, end_time, updated_time, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            [Date.now(), 0, 1, 0, title, "", new Date(startTs).toISOString(), new Date(endTs).toISOString(), new Date().toISOString(), 0]
+            "INSERT INTO tbl_Schedules (uuid, circle_uid, user_uid, type, title, content, start_time, end_time, updated_time, status) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            [String(Date.now()), circle_uid, user_uid, type, title, content, new Date(startTs).toISOString(), new Date(endTs).toISOString(), new Date().toISOString(), 0]
         );
     },
 
@@ -80,7 +80,7 @@ const appDB = {
 
     sp_ClearAllSchedules: async () => {
         await db.runAsync("DELETE FROM tbl_Schedules");
-    }
+    },
 }
 
 export default appDB;
