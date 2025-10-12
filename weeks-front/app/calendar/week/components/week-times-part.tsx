@@ -1,27 +1,34 @@
-import { ScrollView, View, Text, StyleSheet } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Pressable, TextInput, Keyboard } from "react-native";
 import { heightStore } from "./store/heightStore";
 import { useSnapshot } from "valtio";
 import { Schedule } from "@/types/schedule";
 import WeekTimeBar from "./week-time-bar";
 import ENUM from "@/enum/varEnum";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import appDB from "@/db/database";
 
-export default function WeekTimesPart({
-  scrollRef,
-  schedules,
-}: {
-  scrollRef: React.RefObject<ScrollView>;
-  schedules: Schedule[];
-}) {
+export default function WeekTimesPart({ scrollRef, schedules }: { scrollRef: React.RefObject<ScrollView>; schedules: Schedule[] }) {
   const heightSnap = useSnapshot(heightStore);
 
-  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
-  const [newSchedulePosition, setNewSchedulePosition] = useState<{dayIndex: number, hour: number} | null>(null);
+  const [newSchedulePosition, setNewSchedulePosition] = useState<{ dayIndex: number; hour: number; minute: number } | null>(null);
+  // useState로 schedule 타입을 만들어 두고 수정하는게 나을듯
+  const [newScheduleTitle, setNewScheduleTitle] = useState("");
+  const textInputRef = useRef<TextInput>(null);
+
+  // 새 일정이 생성되면 자동으로 포커스
+  useEffect(() => {
+    if (newSchedulePosition) {
+      // 약간의 지연 후 포커스 (렌더링 완료 후)
+      setTimeout(() => {
+        textInputRef.current?.focus();
+      }, 100);
+    }
+  }, [newSchedulePosition]);
 
   // 요일별로 묶기
   const byDay = useMemo(() => {
     // console.log('WeekCalendar - schedules:', schedules);
-    const map: Record<number, Schedule[]> = {0:[],1:[],2:[],3:[],4:[],5:[],6:[]};
+    const map: Record<number, Schedule[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
     schedules.forEach(s => {
       const day = s.StartTime.getDay();
       map[day]?.push(s);
@@ -30,89 +37,186 @@ export default function WeekTimesPart({
   }, [schedules]);
 
   // ================================================
-    // 시간대별 long press 핸들러
-    const handleTimeSlotLongPress = (dayIndex: number, hour: number) => {
-        setIsAddingSchedule(true);
-        setNewSchedulePosition({ dayIndex, hour });
-    };
+  // 시간대별 long press 핸들러
+  const handleTimeSlotLongPress = (dayIndex: number, hour: number, minute: number) => {
+    setNewSchedulePosition({ dayIndex, hour, minute });
+  };
 
-    // 일정 추가 취소
-    const handleScheduleCancel = () => {
-        setIsAddingSchedule(false);
-        setNewSchedulePosition(null);
-    };
+  // 일정 추가 취소
+  const handleScheduleCancel = () => {
+    setNewSchedulePosition(null);
+    setNewScheduleTitle("");
+    Keyboard.dismiss();
+  };
+
+  // 일정 저장
+  const handleScheduleSave = async () => {
+    if (!newSchedulePosition) return;
+    if (newScheduleTitle.trim()) {
+      // console.log("일정 저장:", newScheduleTitle);
+      // // TODO: 실제 일정 저장 로직 구현
+      // const targetDate = new Date(weekStartDate);
+      // targetDate.setDate(weekStartDate.getDate() + dayIndex);
+      // targetDate.setHours(time, 0, 0, 0);
+      // const startTs = new Date(newSchedulePosition.hour + newSchedulePosition.minute).getTime();
+      // const endTs = new Date(newSchedulePosition.hour + 2 + newSchedulePosition.minute).getTime(); //임시로 끝나는 시간은 2시간 처리
+      // await appDB.sp_CreateSchedule(0, 1, 0, newScheduleTitle, "", startTs, endTs);
+    }
+    handleScheduleCancel();
+  };
 
   // ================================================
 
   return (
     <ScrollView // 횡 스크롤 (시간)
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        directionalLockEnabled
-        contentContainerStyle={{}}
-      >
-        <View style={{ width: ENUM.HOUR_WIDTH * 24}}>
-          {/* 7행(세로 스크롤 없음) */}
-          <WeekTimeBar/>
-          <View>
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      directionalLockEnabled
+      contentContainerStyle={{}}>
+      <View style={{ width: ENUM.HOUR_WIDTH * 24 }}>
+        <WeekTimeBar />
+        <View style={{ position: "relative" }}>
+          {/* 바닥: 시간 격자 (세로선) */}
+          <View style={[StyleSheet.absoluteFillObject, { flexDirection: "row" }]}>
+            {ENUM.HOURS.map(h => (
+              <View
+                key={h}
+                style={{
+                  width: ENUM.HOUR_WIDTH,
+                  borderRightWidth: 1,
+                  borderColor: "#ddd",
+                }}
+              />
+            ))}
+          </View>
+
+          {/* 가로 격자 (요일별 구분선) */}
+          <View style={[StyleSheet.absoluteFillObject, { flexDirection: "column" }]}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <View
+                key={i}
+                style={{
+                  height: heightSnap.weekRowHeight,
+                  borderBottomWidth: 2,
+                  borderColor: "#ddd",
+                }}
+              />
+            ))}
+          </View>
+
+          {/* 롱프레스 터치 영역 */}
+          <Pressable
+            style={[StyleSheet.absoluteFillObject]}
+            onTouchStart={e => {
+              const { locationX, locationY } = e.nativeEvent;
+              console.log(`터치 시작: x=${locationX}, y=${locationY}`);
+
+              // 일정 추가 중이면 취소 처리
+              if (newSchedulePosition) {
+                handleScheduleCancel();
+                return;
+              }
+            }}
+            onLongPress={e => {
+              const { locationX, locationY } = e.nativeEvent;
+
+              // 시간 및 위치 요일 계산
+              const hour = Math.floor(locationX / ENUM.HOUR_WIDTH);
+              const minute = Math.floor((locationX % ENUM.HOUR_WIDTH) / 10) * 10; // 10분 단위로 계산
+              const dayIndex = Math.floor(locationY / heightSnap.weekRowHeight);
+
+              console.log(`롱터치 위치: x=${locationX}, y=${locationY}`);
+              console.log(`계산된 위치: ${hour}시, ${minute}분, ${ENUM.DAYS[dayIndex]}요일`);
+
+              handleTimeSlotLongPress(dayIndex, hour, minute);
+            }}
+          />
+
+          {/* 오버레이: 일정 아이템들 */}
+          <View
+            style={{
+              height: heightSnap.containerHeight,
+              width: ENUM.HOUR_WIDTH * 24,
+              position: "relative",
+            }}>
             {ENUM.DAYS.map((_, dayIndex) => (
-              <View key={dayIndex} style={{ height: heightSnap.weekRowHeight, width: ENUM.HOUR_WIDTH*24, position: "relative" }}>
-                {/* 바닥: 시간 격자 (세로선) */}
-                <View style={[StyleSheet.absoluteFillObject, { flexDirection: "row" }]}>
-                  {ENUM.HOURS.map(h => (
-                    <View key={h} style={{ 
-                      width: ENUM.HOUR_WIDTH, 
-                      borderRightWidth: 1, 
-                      borderColor: "#ddd"
-                    }} />
-                  ))}
-                </View>
-                {/* 가로 격자 (요일별 구분선) */}
-                <View style={[StyleSheet.absoluteFillObject, { flexDirection: "column" }]}>
-                  {Array.from({ length: 6 }, (_, i) => (
-                    <View key={i} style={{ 
-                      height: heightSnap.weekRowHeight,
-                      borderBottomWidth: 2, 
-                      borderColor: "#ddd"
-                    }} />
-                  ))}
-                </View>
-                {/* 오버레이: 일정칩 */}
-                <View style={[StyleSheet.absoluteFillObject, { pointerEvents: "box-none" }]}>
-                  {(byDay[dayIndex] || []).map(ev => {
-                    const startTime = ev.StartTime instanceof Date ? ev.StartTime : new Date(ev.StartTime);
-                    const endTime = ev.EndTime instanceof Date ? ev.EndTime : new Date(ev.EndTime);
-                    
-                    const startHour = startTime.getHours();
-                    const startMinute = startTime.getMinutes();
-                    const endHour = endTime.getHours();
-                    const endMinute = endTime.getMinutes();
-                    
-                    const left = (startHour * 60 + startMinute) * ENUM.PPM;
-                    const width = Math.max(((endHour * 60 + endMinute) - (startHour * 60 + startMinute)) * ENUM.PPM, 16);
-                    
-                    console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
-                    return (
-                      <View
-                        key={ev.UUID}
-                        style={{
-                          position: "absolute",
-                          left, top: 8, width, height: heightSnap.weekRowHeight - 16,
-                          borderRadius: 8, paddingHorizontal: 6,
-                          backgroundColor: "#eaf2ff", borderWidth: 1, borderColor: "#c7d2fe",
-                          justifyContent: "center"
-                        }}
-                      >
-                        <Text numberOfLines={1} style={{ fontWeight: "600" }}>{ev.Title}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
+              <View key={dayIndex} style={[StyleSheet.absoluteFillObject, { pointerEvents: "box-none" }]}>
+                {(byDay[dayIndex] || []).map(ev => {
+                  const startTime = ev.StartTime instanceof Date ? ev.StartTime : new Date(ev.StartTime);
+                  const endTime = ev.EndTime instanceof Date ? ev.EndTime : new Date(ev.EndTime);
+
+                  const startHour = startTime.getHours();
+                  const startMinute = startTime.getMinutes();
+                  const endHour = endTime.getHours();
+                  const endMinute = endTime.getMinutes();
+
+                  const left = (startHour * 60 + startMinute) * ENUM.PPM;
+                  const width = Math.max((endHour * 60 + endMinute - (startHour * 60 + startMinute)) * ENUM.PPM, 16);
+
+                  console.log(`Rendering schedule "${ev.Title}" at day ${dayIndex}, left: ${left}, width: ${width}`);
+                  return (
+                    <View
+                      key={ev.UUID}
+                      style={{
+                        position: "absolute",
+                        left,
+                        top: 8,
+                        width,
+                        height: heightSnap.weekRowHeight - 16,
+                        borderRadius: 8,
+                        paddingHorizontal: 6,
+                        backgroundColor: "#eaf2ff",
+                        borderWidth: 1,
+                        borderColor: "#c7d2fe",
+                        justifyContent: "center",
+                      }}>
+                      <Text numberOfLines={1} style={{ fontWeight: "600" }}>
+                        {ev.Title}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             ))}
           </View>
+
+          {/* 일정 추가 동작을 담은 컴포넌트 추가*/}
+          {newSchedulePosition && (
+            <View
+              style={{
+                position: "absolute",
+                top: newSchedulePosition.dayIndex * heightSnap.weekRowHeight + 8,
+                height: heightSnap.weekRowHeight - 16,
+                left: newSchedulePosition.hour * ENUM.HOUR_WIDTH + newSchedulePosition.minute * ENUM.PPM,
+                width: ENUM.HOUR_WIDTH,
+                backgroundColor: "#ccc",
+                borderRadius: 8,
+                paddingHorizontal: 4,
+                paddingVertical: 2,
+              }}>
+              <TextInput
+                ref={textInputRef}
+                value={newScheduleTitle}
+                onChangeText={setNewScheduleTitle}
+                placeholder="일정 제목"
+                placeholderTextColor="#666"
+                style={{
+                  color: "black",
+                  fontWeight: "300",
+                  fontSize: 12,
+                  flex: 1,
+                  textAlign: "center",
+                }}
+                onSubmitEditing={handleScheduleSave}
+                onBlur={handleScheduleCancel}
+                autoFocus={true}
+                selectTextOnFocus={true}
+              />
+            </View>
+          )}
         </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
   );
 }

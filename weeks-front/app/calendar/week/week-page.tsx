@@ -25,8 +25,7 @@ export default function WeekPage({
   const heightSnap = useSnapshot(heightStore);
   
   // 일정 추가 상태
-  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
-  const [newSchedulePosition, setNewSchedulePosition] = useState<{dayIndex: number, hour: number} | null>(null);
+
   
   // 동적으로 계산된 행 높이 (페이지 높이의 7등분).. 스토어에 셋팅
   heightStore.weekRowHeight = heightSnap.containerHeight > 0 ? (heightSnap.containerHeight - heightSnap.timeHeaderHeight) / 7 : 72;
@@ -38,17 +37,7 @@ export default function WeekPage({
   }, [weekStartDate]);
 
 
-  // 시간대별 long press 핸들러
-  const handleTimeSlotLongPress = (dayIndex: number, hour: number) => {
-    setIsAddingSchedule(true);
-    setNewSchedulePosition({ dayIndex, hour });
-  };
 
-  // 일정 추가 취소
-  const handleScheduleCancel = () => {
-    setIsAddingSchedule(false);
-    setNewSchedulePosition(null);
-  };
 
   // ================================================
 
