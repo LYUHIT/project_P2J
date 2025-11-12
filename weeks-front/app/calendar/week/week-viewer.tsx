@@ -2,7 +2,7 @@ import appDB from "@/db/database";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { View, Text } from "react-native";
 import { Schedule } from "@/types/schedule";
-import WeekPage from "./week-page";
+import WeekPage from "./components/week-page";
 import { FlashList, FlashListRef } from "@shopify/flash-list";
 
 const INITIAL_WEEKS = 10000;
@@ -57,8 +57,22 @@ export default function WeekViewer() {
         setWeeks(Array.from({ length: INITIAL_WEEKS }, (_, i) => i - INITIAL_INDEX));
     }, []);
 
-    // 아이템 렌더링
+    // ================================================
+    // 로딩 상태 처리
+    if (pageH === 0) {
+        return (
+            <View style={{ flex: 1 }} onLayout={e => setPageH(e.nativeEvent.layout.height)}>
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                    <Text>Loading...</Text>
+                </View>
+            </View>
+        );
+    }
+    // ================================================
+
+    // 로딩 완료 후 페이지 처리
     const renderWeekPage = ({ item: weekOffset }: { item: number }) => {
+        // 아이템 렌더링
         const weekStart = addWeeks(anchorStart, weekOffset);
         const weekEnd = addDays(weekStart, 7);
 
@@ -78,18 +92,6 @@ export default function WeekViewer() {
             </View>
         );
     };
-
-    // ================================================
-    // 로딩 상태 처리
-    if (pageH === 0) {
-        return (
-            <View style={{ flex: 1 }} onLayout={e => setPageH(e.nativeEvent.layout.height)}>
-                <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                    <Text>Loading...</Text>
-                </View>
-            </View>
-        );
-    }
 
     // 로딩 완료 후 페이지 처리
     return (
