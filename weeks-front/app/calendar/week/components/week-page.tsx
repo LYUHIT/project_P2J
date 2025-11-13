@@ -5,8 +5,8 @@ import WeekTimeBar from "./week-time-bar";
 import appDB from "@/db/database";
 import { heightStore } from "./store/heightStore";
 import { useSnapshot } from "valtio";
-import WeekDaysPart from "./week-days-part";
-import WeekTimesPart from "./week-times-part";
+import WeekDayBar from "./week-day-bar";
+import WeekTimesPart from "./week-time-part";
 
 const HOUR_WIDTH = 60;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -32,8 +32,8 @@ export default function WeekPage({ weekStartDate, schedules = [] }: { weekStartD
 
     return (
         <View style={{ flexDirection: "row", height: "100%" }} onLayout={e => (heightStore.containerHeight = e.nativeEvent.layout.height)}>
-            <WeekDaysPart weekStartDate={weekStartDate} />
-            <WeekTimesPart scrollRef={scrollRef as React.RefObject<ScrollView>} schedules={schedules} />
+            <WeekDayBar weekStartDate={weekStartDate} />
+            <WeekTimesPart scrollRef={scrollRef as React.RefObject<ScrollView>} weekStartDate={weekStartDate} schedules={schedules} />
         </View>
     );
 }
